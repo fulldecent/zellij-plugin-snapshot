@@ -9,10 +9,11 @@ on:
 
 jobs:
   publish:
-    name: Publish to crates.io
+    name: Publish
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      # contents: read can publish to crates.io and cannot create a Release.
+      contents: write
       id-token: write # Required. crates.io Trusted Publishing exchanges this OIDC token.
 
     steps:
@@ -57,3 +58,17 @@ jobs:
         run: cargo publish --locked
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "$(printf '%s\n' \
+              '```bash' \
+              "cargo install zellij-plugin-snapshot --version ${GITHUB_REF_NAME} --locked" \
+              '```' \
+              '' \
+              'crates.io stores the source. This Release attaches no binary.')"
