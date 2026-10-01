@@ -8,7 +8,7 @@ A command-line host that loads **your** Zellij plugin `.wasm`, feeds it the same
 | File | What it is |
 | --- | --- |
 | `{name}.ansi.txt` | Exact bytes from `render(rows, cols)` (SGR + Zellij UI DCS) |
-| `{name}.svg` | That pane painted as self-contained glyph outlines (no browser, no font install) |
+| `{name}.svg` | That pane painted as self-contained glyph outlines (no font needed to view it) |
 
 Pinned to Zellij / `zellij-tile` / `zellij-utils` **0.45.1**. A plugin built against another version will not speak this protobuf.
 
@@ -18,11 +18,15 @@ Do not list it in `[dependencies]`: that graph is compiled into the plugin you s
 
 Do not list it in `[dev-dependencies]` either, on stable Cargo. That field still means “link this **library** into `cargo test`.” This package has no library target, and even if it did, Cargo would not put the snapshot **binary** on your `PATH` or into your tests. Unstable [artifact dependencies](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies) (`artifact = "bin"`) are the Cargo-native way to depend on someone else’s binary; this project does not require that.
 
-Install it from Git (there is no crates.io release):
+Install one published version. crates.io stores the source. `cargo install` compiles that source on your machine and puts the binary on `PATH`:
 
 ```bash
-cargo install --git https://github.com/fulldecent/zellij-plugin-snapshot --tag v0.1.0 --locked
+cargo install zellij-plugin-snapshot --version 0.2.0 --locked
 ```
+
+`--locked` builds the dependency set in the published `Cargo.lock`. Cargo includes that file because this package has a binary. The command leaves an existing install in place when that version is already installed, and rebuilds when the version you name is different. `cargo update` does not touch an installed binary. A newer release on crates.io does not replace yours until you run `cargo install` again and name the new version.
+
+This repository’s `rust-toolchain.toml` is for CI and for developing this repository. It is excluded from the published package, so `cargo install` uses the `cargo` already on your `PATH`.
 
 ---
 
@@ -46,7 +50,7 @@ target/wasm32-wasip1/release/<your_crate>.wasm
 ### 2. Get this tool
 
 ```bash
-cargo install --git https://github.com/fulldecent/zellij-plugin-snapshot --tag v0.1.0 --locked
+cargo install zellij-plugin-snapshot --version 0.2.0 --locked
 ```
 
 To work from a clone:
@@ -119,7 +123,7 @@ GitHub Actions sketch:
   with:
     targets: wasm32-wasip1
 - run: cargo build --target wasm32-wasip1 --release
-- run: cargo install --git https://github.com/fulldecent/zellij-plugin-snapshot --tag v0.1.0 --locked
+- run: cargo install zellij-plugin-snapshot --version 0.2.0 --locked
 - run: zellij-plugin-snapshot shots/normal.yaml --out /tmp/shots
 - run: diff -u shots/normal.ansi.txt /tmp/shots/normal.ansi.txt
 ```
@@ -227,12 +231,14 @@ Do this every month or so and please send a PR here if you see updates available
 1. Keep `zellij-utils` **0.45.1**, `wasmi` / `wasmi_wasi` **1.1.0**, and `prost` **0.12** until Zellij itself ships a newer ABI. Wasmi 2.x is a different interpreter than Zellij 0.45 uses. This snapshot tool will only ever support the latest version of Zellij and `zellij-utils`.
 1. `serde_yaml` 0.9 is deprecated. A later swap should be a maintained 0.9-compatible crate such as `serde_yaml_ng`, not `serde_yml`.
 1. Review the Zellij tag and sibling plugin paths in [examples/fetch-plugins.sh](examples/fetch-plugins.sh) when example WASMs should track a new host.
+1. A release is one commit that contains the version bump in [Cargo.toml](Cargo.toml) and the same number in every `cargo install --version` line in this README, a git tag of that version on that commit, with no `v` prefix, and `cargo publish` of that commit. Older versions stay on crates.io so an existing pin keeps installing.
 
 ## References
 
 1. This crate is a command-line host. Plugin authors run the binary against their wasm. They do not add it to `[dependencies]` or to `[dev-dependencies]` on stable Cargo (that field links a library, and this package is not one).
+1. Installation follows [`cargo install`](https://doc.rust-lang.org/cargo/commands/cargo-install.html). The registry holds source. Name the version. An install stays on that version until a later `cargo install` names a different one.
 1. We use title case for titles and proper nouns; not for headings and things. This includes this README as well as workflow rules and other configuration files.
-1. We use an MIT license for this project’s source, Copyright (c) 2026 William Entriken. See [LICENSE](LICENSE). The bundled JetBrains Mono Nerd Font is OFL 1.1 plus Nerd Fonts’ terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+1. We use an MIT license for this project’s source, Copyright (c) 2026 William Entriken. See [LICENSE](LICENSE). The bundled JetBrains Mono Nerd Font is OFL 1.1 plus Nerd Fonts’ terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The published package license is `MIT AND OFL-1.1` because the crate contains both works. In an SPDX expression, `AND` means a recipient complies with both. Cargo documents that field as an SPDX expression: [The `license` and `license-file` fields](https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields).
 1. Zellij can load a plugin from an HTTPS URL. That is simpler and insecure. We treat that as wrong and do not document it.
 1. This project is built based on [best practices documented in zellij-plugin-template](https://github.com/fulldecent/zellij-plugin-template), release 1.0.0.
 1. This project is built based on [best practices documented in project-template](https://github.com/fulldecent/project-template), release 1.0.0.
