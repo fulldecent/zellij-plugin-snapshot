@@ -1,0 +1,16 @@
+name: status-bar-stock
+plugin: ../plugins/status-bar-stock.wasm
+geometry:
+  rows: 2
+  cols: 120
+steps:
+  - action: grant_permissions
+  - action: initial_keybinds
+  - action: mode_update
+    mode: normal
+    session: demo
+  - action: tab_update
+    tabs:
+      - name: Tab
+        active: true
+        tiled: 1

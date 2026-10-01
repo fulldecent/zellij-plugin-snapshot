@@ -1,0 +1,15 @@
+name: status-bar-nano
+plugin: ../plugins/status-bar-nano.wasm
+geometry:
+  rows: 1
+  cols: 80
+steps:
+  - action: grant_permissions
+  - action: mode_update
+    mode: normal
+    session: demo
+  - action: tab_update
+    tabs:
+      - name: Tab
+        active: true
+        tiled: 1

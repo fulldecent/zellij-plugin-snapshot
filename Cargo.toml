@@ -1,0 +1,25 @@
+[package]
+name = "zellij-plugin-snapshot"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "Headless Zellij plugin host: load a .wasm, mock host commands, drive events, capture exact render output"
+repository = "https://github.com/fulldecent/zellij-plugin-snapshot"
+
+[[bin]]
+name = "zellij-plugin-snapshot"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+prost = "0.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+ttf-parser = "0.25"
+unicode-width = "0.2"
+wasmi = { version = "1.1.0", default-features = false, features = ["std"] }
+wasmi_wasi = "1.1.0"
+zellij-utils = "0.45.1"

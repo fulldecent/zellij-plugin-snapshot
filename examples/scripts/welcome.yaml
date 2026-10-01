@@ -1,0 +1,26 @@
+name: welcome
+plugin: ../plugins/session-manager.wasm
+config:
+  welcome_screen: "true"
+world:
+  current: welcome
+  sessions:
+    - welcome
+    - demo
+  resurrectable:
+    - old-work
+geometry:
+  rows: 24
+  cols: 80
+steps:
+  - action: grant_permissions
+  - action: mode_update
+    mode: normal
+    session: welcome
+  - action: session_update
+    current: welcome
+    sessions:
+      - welcome
+      - demo
+    resurrectable:
+      - old-work
