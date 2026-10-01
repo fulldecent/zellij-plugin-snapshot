@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      # Tag names are the crate version, with no "v" prefix: 0.2.0.
+      # GitHub's filter is a glob. "+" is one or more of the preceding pattern.
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required. crates.io Trusted Publishing exchanges this OIDC token.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust
+        # Same install as ci.yml. rust-toolchain.toml is excluded from the
+        # published package, so cargo publish uses this toolchain, not that file.
+        run: |
+          toolchain=$(sed -n 's/^channel = "\([^"]*\)"/\1/p' rust-toolchain.toml)
+          components=$(sed -n 's/^components = \[\(.*\)\]/\1/p' rust-toolchain.toml | tr -d '"' | tr ',' ' ')
+
+          rustup toolchain install "$toolchain" \
+            --profile minimal \
+            $(printf '%s\n' "$components" | xargs -n1 printf -- '--component %s ')
+
+      - name: Require the tag to be the crate version
+        # A tag of 0.3.0 on a commit whose Cargo.toml still says 0.2.0 would
+        # upload the old version, or fail after crates.io rejects the duplicate.
+        run: |
+          version=$(sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1)
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Cargo.toml version is ${version}; tag is ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test
+
+      - name: Authenticate with crates.io
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+
+      - name: Publish
+        run: cargo publish --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

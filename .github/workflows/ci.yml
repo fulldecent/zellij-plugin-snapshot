@@ -2,6 +2,9 @@ name: CI
 
 on:
   push:
+    # Tags are released by release.yml, which runs these checks before publish.
+    branches:
+      - "**"
   pull_request:
 
 jobs:
