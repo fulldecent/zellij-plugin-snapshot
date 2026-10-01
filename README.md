@@ -229,7 +229,7 @@ Do this every month or so and please send a PR here if you see updates available
 
 1. This crate is a command-line host. Plugin authors run the binary against their wasm. They do not add it to `[dependencies]` or to `[dev-dependencies]` on stable Cargo (that field links a library, and this package is not one).
 1. We use title case for titles and proper nouns; not for headings and things. This includes this README as well as workflow rules and other configuration files.
-1. We use an MIT license for this project’s source. See [LICENSE](LICENSE). The bundled JetBrains Mono Nerd Font is OFL 1.1 plus Nerd Fonts’ terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+1. We use an MIT license for this project’s source, Copyright (c) 2026 William Entriken. See [LICENSE](LICENSE). The bundled JetBrains Mono Nerd Font is OFL 1.1 plus Nerd Fonts’ terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 1. Zellij can load a plugin from an HTTPS URL. That is simpler and insecure. We treat that as wrong and do not document it.
 1. This project is built based on [best practices documented in zellij-plugin-template](https://github.com/fulldecent/zellij-plugin-template), release 1.0.0.
 1. This project is built based on [best practices documented in project-template](https://github.com/fulldecent/project-template), release 1.0.0.

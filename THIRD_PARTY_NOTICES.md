@@ -2,7 +2,7 @@
 
 This repository redistributes and embeds **JetBrains Mono Nerd Font Regular** (`assets/fonts/JetBrainsMonoNerdFont-Regular.ttf`) so SVG snapshots can trace glyph outlines without a system font.
 
-The project’s own code is MIT. See [LICENSE](LICENSE). The font is **not** MIT. It stays under the font licenses below.
+The project’s own code is MIT, Copyright (c) 2026 William Entriken. See [LICENSE](LICENSE). The font is **not** MIT. It stays under the font licenses below.
 
 ## JetBrains Mono
 

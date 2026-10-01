@@ -3,6 +3,7 @@ name = "zellij-plugin-snapshot"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+authors = ["William Entriken"]
 publish = false
 description = "Headless Zellij plugin host: load a .wasm, mock host commands, drive events, capture exact render output"
 repository = "https://github.com/fulldecent/zellij-plugin-snapshot"
