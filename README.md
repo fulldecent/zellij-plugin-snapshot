@@ -21,7 +21,7 @@ Do not list it in `[dev-dependencies]` either, on stable Cargo. That field still
 Install one published version. crates.io stores the source. `cargo install` compiles that source on your machine and puts the binary on `PATH`:
 
 ```bash
-cargo install zellij-plugin-snapshot --version 0.2.0 --locked
+cargo install zellij-plugin-snapshot --version 0.2.1 --locked
 ```
 
 `--locked` builds the dependency set in the published `Cargo.lock`. Cargo includes that file because this package has a binary. The command leaves an existing install in place when that version is already installed, and rebuilds when the version you name is different. `cargo update` does not touch an installed binary. A newer release on crates.io does not replace yours until you run `cargo install` again and name the new version.
@@ -50,7 +50,7 @@ target/wasm32-wasip1/release/<your_crate>.wasm
 ### 2. Get this tool
 
 ```bash
-cargo install zellij-plugin-snapshot --version 0.2.0 --locked
+cargo install zellij-plugin-snapshot --version 0.2.1 --locked
 ```
 
 To work from a clone:
@@ -123,7 +123,7 @@ GitHub Actions sketch:
   with:
     targets: wasm32-wasip1
 - run: cargo build --target wasm32-wasip1 --release
-- run: cargo install zellij-plugin-snapshot --version 0.2.0 --locked
+- run: cargo install zellij-plugin-snapshot --version 0.2.1 --locked
 - run: zellij-plugin-snapshot shots/normal.yaml --out /tmp/shots
 - run: diff -u shots/normal.ansi.txt /tmp/shots/normal.ansi.txt
 ```
