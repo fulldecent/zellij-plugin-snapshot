@@ -34,12 +34,7 @@ fn main() -> Result<()> {
         anyhow::bail!("plugin wasm missing: {}", shot.plugin.display());
     }
 
-    let mut host = PluginHost::load(
-        &shot.plugin,
-        &shot.config,
-        &shot.ids,
-        shot.world.snapshot(),
-    )?;
+    let mut host = PluginHost::load(&shot.plugin, &shot.config, &shot.ids, shot.world.snapshot())?;
     let log = host.drive(&shot.steps)?;
     let ansi = host.render(shot.geometry.rows, shot.geometry.cols)?;
     let styling = shot.styling();

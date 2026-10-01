@@ -15,8 +15,8 @@ use zellij_utils::input::layout::PluginUserConfiguration;
 use zellij_utils::plugin_api::action::ProtobufPluginConfiguration;
 use zellij_utils::plugin_api::event::ProtobufEvent;
 use zellij_utils::plugin_api::plugin_command::{
-    ProtobufGenerateRandomNameResponse, ProtobufGetLayoutDirResponse, ProtobufGetSessionListResponse,
-    ProtobufPluginCommand,
+    ProtobufGenerateRandomNameResponse, ProtobufGetLayoutDirResponse,
+    ProtobufGetSessionListResponse, ProtobufPluginCommand,
 };
 use zellij_utils::plugin_api::plugin_ids::{ProtobufPluginIds, ProtobufZellijVersion};
 
@@ -90,10 +90,9 @@ impl PluginHost {
             }
         }
 
-        let proto_cfg: ProtobufPluginConfiguration =
-            PluginUserConfiguration::new(config.clone())
-                .try_into()
-                .map_err(|e| anyhow!("{e}"))?;
+        let proto_cfg: ProtobufPluginConfiguration = PluginUserConfiguration::new(config.clone())
+            .try_into()
+            .map_err(|e| anyhow!("{e}"))?;
         write_object(&store.data().stdin, &proto_cfg.encode_to_vec())?;
 
         let load = instance
@@ -149,21 +148,30 @@ fn host_run_plugin_command(mut caller: Caller<'_, Env>) {
     let bytes = match read_bytes_json(&stdout) {
         Ok(b) => b,
         Err(e) => {
-            caller.data_mut().effects.push(format!("bad host command json: {e}"));
+            caller
+                .data_mut()
+                .effects
+                .push(format!("bad host command json: {e}"));
             return;
         }
     };
     let proto = match ProtobufPluginCommand::decode(bytes.as_slice()) {
         Ok(p) => p,
         Err(e) => {
-            caller.data_mut().effects.push(format!("bad command protobuf: {e}"));
+            caller
+                .data_mut()
+                .effects
+                .push(format!("bad command protobuf: {e}"));
             return;
         }
     };
     let command: PluginCommand = match proto.try_into() {
         Ok(c) => c,
         Err(e) => {
-            caller.data_mut().effects.push(format!("command convert: {e}"));
+            caller
+                .data_mut()
+                .effects
+                .push(format!("command convert: {e}"));
             return;
         }
     };
@@ -176,7 +184,8 @@ fn dispatch(env: &mut Env, stdin: &Arc<Mutex<VecDeque<u8>>>, command: PluginComm
             for e in events {
                 env.subscriptions.insert(format!("{e:?}"));
             }
-            env.effects.push(format!("Subscribe {:?}", env.subscriptions));
+            env.effects
+                .push(format!("Subscribe {:?}", env.subscriptions));
         }
         PluginCommand::Unsubscribe(events) => {
             env.effects.push(format!("Unsubscribe {events:?}"));

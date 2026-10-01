@@ -4,21 +4,11 @@ use zellij_utils::shared::eightbit_to_rgb;
 
 use crate::trace;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 struct Style {
     fg: Option<(u8, u8, u8)>,
     bg: Option<(u8, u8, u8)>,
     bold: bool,
-}
-
-impl Default for Style {
-    fn default() -> Self {
-        Self {
-            fg: None,
-            bg: None,
-            bold: false,
-        }
-    }
 }
 
 #[derive(Clone, Copy)]
@@ -131,7 +121,6 @@ impl Screen {
             };
         }
     }
-
 }
 
 /// Paint ANSI (plus Zellij UI DCS) into a rows×cols grid, then a traced SVG.
@@ -301,48 +290,40 @@ fn apply_dcs(scr: &mut Screen, body: &str, styling: &Styling) {
                 paint_ui_text(scr, &padded, decl, styling, true);
             }
         }
-        "table" => {
-            if payload.len() >= 2 {
-                let columns: usize = payload[0].parse().unwrap_or(1).max(1);
-                let cells: Vec<UiItem> = payload[2..]
-                    .iter()
-                    .filter_map(|p| parse_ui_item(p))
-                    .collect();
-                let start_x = scr.x;
-                for (n, cell) in cells.iter().enumerate() {
-                    let row = n / columns;
-                    if n > 0 && n % columns == 0 {
-                        scr.y = (scr.y + 1).min(scr.rows - 1);
-                        scr.x = start_x;
-                    }
-                    if n % columns != 0 {
-                        let gap = Style {
-                            fg: Some(palette_rgb(styling.table_cell_unselected.base)),
-                            bg: None,
-                            bold: false,
-                        };
-                        let prev = scr.style;
-                        scr.style = gap;
-                        scr.put_str("  ");
-                        scr.style = prev;
-                    }
-                    let decl = if row == 0 {
-                        styling.table_title
-                    } else if cell.selected {
-                        styling.table_cell_selected
-                    } else {
-                        styling.table_cell_unselected
-                    };
-                    // Zellij only paints a table cell background when the cell
-                    // is selected or opaque. Title-row spaces must stay clear.
-                    paint_ui_text(
-                        scr,
-                        cell,
-                        decl,
-                        styling,
-                        cell.selected || cell.opaque,
-                    );
+        "table" if payload.len() >= 2 => {
+            let columns: usize = payload[0].parse().unwrap_or(1).max(1);
+            let cells: Vec<UiItem> = payload[2..]
+                .iter()
+                .filter_map(|p| parse_ui_item(p))
+                .collect();
+            let start_x = scr.x;
+            for (n, cell) in cells.iter().enumerate() {
+                let row = n / columns;
+                if n > 0 && n % columns == 0 {
+                    scr.y = (scr.y + 1).min(scr.rows - 1);
+                    scr.x = start_x;
                 }
+                if n % columns != 0 {
+                    let gap = Style {
+                        fg: Some(palette_rgb(styling.table_cell_unselected.base)),
+                        bg: None,
+                        bold: false,
+                    };
+                    let prev = scr.style;
+                    scr.style = gap;
+                    scr.put_str("  ");
+                    scr.style = prev;
+                }
+                let decl = if row == 0 {
+                    styling.table_title
+                } else if cell.selected {
+                    styling.table_cell_selected
+                } else {
+                    styling.table_cell_unselected
+                };
+                // Zellij only paints a table cell background when the cell
+                // is selected or opaque. Title-row spaces must stay clear.
+                paint_ui_text(scr, cell, decl, styling, cell.selected || cell.opaque);
             }
         }
         "nested_list" => {
@@ -540,7 +521,9 @@ fn split_indices(s: &str) -> (Vec<Vec<usize>>, String) {
     }
 }
 
-fn split_coords<'a>(parts: &'a [&'a str]) -> (Option<(usize, usize, Option<usize>, Option<usize>)>, &'a [&'a str]) {
+type DcsCoords = (usize, usize, Option<usize>, Option<usize>);
+
+fn split_coords<'a>(parts: &'a [&'a str]) -> (Option<DcsCoords>, &'a [&'a str]) {
     if let Some(first) = parts.first() {
         if first.contains('/') {
             let mut it = first.split('/');
@@ -553,8 +536,6 @@ fn split_coords<'a>(parts: &'a [&'a str]) -> (Option<(usize, usize, Option<usize
     }
     (None, parts)
 }
-
-
 
 fn apply_csi(scr: &mut Screen, bytes: &[u8], start: usize) -> usize {
     // start at ESC, ESC [
@@ -713,7 +694,10 @@ mod tests {
     fn svg_traces_nerd_font_glyphs_as_paths() {
         let ansi = "\u{1b}[38;5;154m\u{1b}[48;5;16m\u{1b}[38;5;16m\u{1b}[48;5;154m Tab \u{1b}[38;5;154m\u{1b}[48;5;16m";
         let svg = ansi_svg(ansi, 8, 1, &DEFAULT_STYLES);
-        assert!(svg.contains("<path "), "glyphs must be traced outlines: {svg}");
+        assert!(
+            svg.contains("<path "),
+            "glyphs must be traced outlines: {svg}"
+        );
         assert!(!svg.contains("<polygon"));
         assert!(!svg.contains("@font-face"));
         assert!(!svg.contains(''));

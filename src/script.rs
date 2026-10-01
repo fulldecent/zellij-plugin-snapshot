@@ -4,12 +4,12 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use zellij_utils::data::{
-    Event, InputMode, ModeInfo, PaneManifest, PermissionStatus, SessionInfo,
-    SessionListSnapshot, Styling, TabInfo,
+    Event, InputMode, ModeInfo, PaneManifest, PermissionStatus, SessionInfo, SessionListSnapshot,
+    Styling, TabInfo,
 };
-use zellij_utils::shared::default_palette;
 use zellij_utils::input::actions::Action;
 use zellij_utils::input::config::Config;
+use zellij_utils::shared::default_palette;
 
 #[derive(Debug, Deserialize)]
 pub struct ShotScript {
@@ -179,11 +179,13 @@ impl Step {
             ))),
             Step::InitialKeybinds => Ok(Some(Event::InitialKeybinds(default_keybinds()))),
             Step::ModeUpdate { mode, session } => {
-                let mut info = ModeInfo::default();
-                info.mode = parse_mode(mode)?;
-                info.base_mode = Some(InputMode::Normal);
-                info.session_name = session.clone();
-                info.keybinds = default_keybinds();
+                let mut info = ModeInfo {
+                    mode: parse_mode(mode)?,
+                    base_mode: Some(InputMode::Normal),
+                    session_name: session.clone(),
+                    keybinds: default_keybinds(),
+                    ..Default::default()
+                };
                 info.style.colors = Styling::from(default_palette());
                 // Zellij sets this false when the session can draw Nerd Font
                 // separators. The type default is true, which makes the stock
@@ -193,7 +195,11 @@ impl Step {
                 Ok(Some(Event::ModeUpdate(info)))
             }
             Step::TabUpdate { tabs } => {
-                let tabs = tabs.iter().enumerate().map(|(i, t)| tab_info(i, t)).collect();
+                let tabs = tabs
+                    .iter()
+                    .enumerate()
+                    .map(|(i, t)| tab_info(i, t))
+                    .collect();
                 Ok(Some(Event::TabUpdate(tabs)))
             }
             Step::SessionUpdate {

@@ -56,9 +56,8 @@ impl OutlineBuilder for PathSink {
         self.d.push_str(&format!("Q{x1:.3} {y1:.3} {x:.3} {y:.3}"));
     }
     fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
-        self.d.push_str(&format!(
-            "C{x1:.3} {y1:.3} {x2:.3} {y2:.3} {x:.3} {y:.3}"
-        ));
+        self.d
+            .push_str(&format!("C{x1:.3} {y1:.3} {x2:.3} {y2:.3} {x:.3} {y:.3}"));
     }
     fn close(&mut self) {
         self.d.push('Z');

@@ -6,7 +6,7 @@ The project’s own code is MIT, Copyright (c) 2026 William Entriken. See [LICEN
 
 ## JetBrains Mono
 
-Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono).
+Copyright 2020 The JetBrains Mono Project Authors ([JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono)).
 
 Licensed under the SIL Open Font License, Version 1.1. The full license is in [assets/fonts/OFL.txt](assets/fonts/OFL.txt).
 
@@ -24,5 +24,5 @@ Icon glyphs Nerd Fonts merges in come from several projects (Powerline, Font Awe
 
 Upstream:
 
-- https://github.com/JetBrains/JetBrainsMono
-- https://github.com/ryanoasis/nerd-fonts
+- [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono)
+- [ryanoasis/nerd-fonts](https://github.com/ryanoasis/nerd-fonts)

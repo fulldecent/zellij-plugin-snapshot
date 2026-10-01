@@ -1,9 +1,12 @@
 # Zellij Plugin Snapshot
 
+[![Lint](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/lint.yml)
+[![CI](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/ci.yml)
+
 A command-line host that loads **your** Zellij plugin `.wasm`, feeds it the same events a real session would, and writes two files:
 
 | File | What it is |
-|---|---|
+| --- | --- |
 | `{name}.ansi.txt` | Exact bytes from `render(rows, cols)` (SGR + Zellij UI DCS) |
 | `{name}.svg` | That pane painted as self-contained glyph outlines (no browser, no font install) |
 
@@ -168,7 +171,7 @@ steps:                                # events, in order, then render
 **Which steps your plugin needs** depends on what it reads in `update`:
 
 | Plugin kind | Typical steps |
-|---|---|
+| --- | --- |
 | Ignores host (hello-world) | `steps: []` |
 | Status / tab bar | `grant_permissions`, `mode_update`, `tab_update` |
 | Stock status-bar | also `initial_keybinds` (it paints the keymap) |
@@ -211,7 +214,7 @@ zellij-plugin-snapshot script.yaml [--out DIR]
 ```
 
 | Argument | Meaning |
-|---|---|
+| --- | --- |
 | `script.yaml` | Drive script; relative to the current working directory |
 | `--out DIR` | Directory for `{name}.ansi.txt` and `{name}.svg` (default `.`) |
 

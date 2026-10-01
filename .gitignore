@@ -3,3 +3,12 @@
 /.vscode
 /examples/out
 /examples/plugins/*.wasm
+
+# macOS
+.DS_Store
+
+# Secrets. .env.example is the committed sample.
+.env
+.env.*
+!.env.example
+
