@@ -3,6 +3,7 @@
 /.vscode
 /examples/out
 /examples/plugins/*.wasm
+/.tools
 
 # macOS
 .DS_Store

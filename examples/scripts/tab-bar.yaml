@@ -1,5 +1,5 @@
-name: tab-bar-ribbons
-plugin: ../plugins/tab-bar-ribbons.wasm
+name: tab-bar
+plugin: ../plugins/tab-bar.wasm
 geometry:
   rows: 1
   cols: 80

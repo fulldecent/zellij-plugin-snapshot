@@ -1,4 +1,4 @@
-name: welcome
+name: session-manager
 plugin: ../plugins/session-manager.wasm
 config:
   welcome_screen: "true"

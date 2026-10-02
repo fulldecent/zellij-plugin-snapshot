@@ -1,6 +1,0 @@
-name: template
-plugin: ../plugins/fulldecent-zellij-plugin-template-v0.2.0.wasm
-geometry:
-  rows: 8
-  cols: 40
-steps: []

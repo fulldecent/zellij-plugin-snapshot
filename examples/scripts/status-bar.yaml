@@ -1,10 +1,11 @@
-name: status-bar-nano
-plugin: ../plugins/status-bar-nano.wasm
+name: status-bar
+plugin: ../plugins/status-bar.wasm
 geometry:
-  rows: 1
-  cols: 80
+  rows: 2
+  cols: 120
 steps:
   - action: grant_permissions
+  - action: initial_keybinds
   - action: mode_update
     mode: normal
     session: demo
