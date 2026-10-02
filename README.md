@@ -193,7 +193,7 @@ Do this every month or so and please send a PR here if you see updates available
 1. Keep `zellij-utils` **0.45.1**, `wasmi` / `wasmi_wasi` **1.1.0**, and `prost` **0.12** until Zellij itself ships a newer ABI. Wasmi 2.x is a different interpreter than Zellij 0.45 uses. This snapshot tool will only ever support the latest version of Zellij and `zellij-utils`.
 1. `serde_yaml` 0.9 is deprecated. A later swap should be a maintained 0.9-compatible crate such as `serde_yaml_ng`, not `serde_yml`.
 1. Review the Zellij tag in [examples/fetch-plugins.sh](examples/fetch-plugins.sh) when the example wasm files should track a new host.
-1. A release is one commit that contains the version bump in [Cargo.toml](Cargo.toml) and the same number in every `cargo install --version` line in this README, and a git tag of that version on that commit, with no `v` prefix. Pushing that tag runs [release.yml](.github/workflows/release.yml). That workflow publishes the crate to crates.io, then creates a GitHub Release with the same name as the tag. The Release body is the `cargo install --version` command for that version. The Release has no attached binary. Older versions stay on crates.io so an existing pin keeps installing.
+1. A release is one commit that contains the version bump in [Cargo.toml](Cargo.toml), and a git tag of that version on that commit, with no `v` prefix. Pushing that tag runs [release.yml](.github/workflows/release.yml). That workflow publishes the crate to crates.io, then creates a GitHub Release with the same name as the tag. The Release body is the `cargo install --version` command for that version.
 
 ## References
 
