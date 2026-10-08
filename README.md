@@ -109,9 +109,9 @@ diff -u shots/normal.ansi.txt /tmp/shots/normal.ansi.txt
 zellij-plugin-snapshot script.yaml [--out DIR]
 ```
 
-| Argument      | Meaning                                                      |
-| ------------- | ------------------------------------------------------------ |
-| `script.yaml` | Drive script; relative to the current working directory      |
+| Argument      | Meaning                                                        |
+| ------------- | -------------------------------------------------------------- |
+| `script.yaml` | Drive script; relative to the current working directory        |
 | `--out DIR`   | Directory for `{name}.ansi.txt` and `{name}.svg` (default `.`) |
 
 ### Script reference
