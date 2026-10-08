@@ -7,4 +7,4 @@
 
 Icon glyphs added by the Nerd Fonts patch are attributed in the [license audit](https://github.com/ryanoasis/nerd-fonts/blob/master/license-audit.md).
 
-This project's source is MIT, Copyright (c) 2026 William Entriken. See [LICENSE](LICENSE).
+This project's source is MIT, Copyright (c) 2026 William Entriken. See [LICENSE.md](LICENSE.md).
