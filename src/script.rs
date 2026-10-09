@@ -262,7 +262,15 @@ fn resolve_size(
 }
 
 fn check_stem(stem: &str) -> Result<()> {
-    if stem.is_empty() || stem == "." || stem == ".." || stem.contains('/') || stem.contains('\\') {
+    // `:` is a drive-relative path on Windows (`C:shot`) and an NTFS alternate
+    // data stream (`shot:stream`). Either one would escape `--out`.
+    if stem.is_empty()
+        || stem == "."
+        || stem == ".."
+        || stem.contains('/')
+        || stem.contains('\\')
+        || stem.contains(':')
+    {
         bail!("output stem '{stem}' is not a single file name");
     }
     Ok(())
@@ -549,6 +557,19 @@ mod tests {
             steps:
               - action: render
                 name: shots/a
+                rows: 1
+                cols: 1
+            ",
+        );
+        let err = shot.schedule("demo").unwrap_err().to_string();
+        assert!(err.contains("not a single file name"), "{err}");
+
+        let shot = parse(
+            "
+            plugin: plugin.wasm
+            steps:
+              - action: render
+                name: \"C:shot\"
                 rows: 1
                 cols: 1
             ",

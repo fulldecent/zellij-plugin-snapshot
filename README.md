@@ -224,7 +224,7 @@ steps:
 
 A script with no `render` step sends the events, then calls `render` once with `geometry`. The output stem is `name`, or the YAML file stem when `name` is omitted.
 
-A `render` step calls `render` at that point and writes `{name}.ansi.txt` and `{name}.svg` under `--out`. `rows` and `cols` fall back to `geometry` one field at a time. `name` falls back to the same stem. The host does not render again after the last step. Two renders that would write the same stem fail. A stem is one file name, so `shots/a` is rejected. `geometry` may be omitted when every `render` step sets both `rows` and `cols`.
+A `render` step calls `render` at that point and writes `{name}.ansi.txt` and `{name}.svg` under `--out`. `rows` and `cols` fall back to `geometry` one field at a time. `name` falls back to the same stem. The host does not render again after the last step. Two renders that would write the same stem fail. A stem is one file name, so `shots/a` and `C:shot` are rejected. `geometry` may be omitted when every `render` step sets both `rows` and `cols`.
 
 A `render` step does not send `TabUpdate`. `viewport_rows`, `viewport_columns`, `display_area_rows`, and `display_area_columns` stay at whatever the last `tab_update` set (40×80 and 42×80 when the script uses the fields above).
 
