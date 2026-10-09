@@ -1,6 +1,6 @@
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use zellij_utils::data::{
@@ -21,7 +21,9 @@ pub struct ShotScript {
     pub ids: HostIds,
     #[serde(default)]
     pub world: World,
-    pub geometry: Geometry,
+    /// Default `render` size. Required when a render omits `rows` or `cols`, including the implicit render of a script that has no `render` step.
+    #[serde(default)]
+    pub geometry: Option<Geometry>,
     pub steps: Vec<Step>,
 }
 
@@ -125,6 +127,27 @@ pub enum Step {
     EventJson {
         json: String,
     },
+    /// Call `render(rows, cols)` and write `{name}.ansi.txt` and `{name}.svg`.
+    ///
+    /// This is not an event. Omitted `rows` or `cols` use [`ShotScript::geometry`].
+    /// Omitted `name` uses the script stem. A script that contains any `render`
+    /// step does not also render once at the end.
+    Render {
+        #[serde(default)]
+        rows: Option<u32>,
+        #[serde(default)]
+        cols: Option<u32>,
+        #[serde(default)]
+        name: Option<String>,
+    },
+}
+
+/// One step of a run, after stems and sizes have been resolved.
+#[derive(Debug)]
+pub enum Scheduled {
+    // `Event` is hundreds of bytes. Boxing keeps the render variant from padding every step.
+    Event(Box<Event>),
+    Render { stem: String, rows: u32, cols: u32 },
 }
 
 fn normal_mode() -> String {
@@ -169,11 +192,100 @@ impl ShotScript {
             .with_context(|| format!("read script {}", path.display()))?;
         serde_yaml::from_str(&text).with_context(|| format!("parse {}", path.display()))
     }
+
+    /// Events and renders in script order.
+    ///
+    /// `default_stem` is the top-level `name`, or the YAML file stem when `name` is omitted.
+    /// A script with no `render` step gets one render at the end, using `geometry` and `default_stem`.
+    pub fn schedule(&self, default_stem: &str) -> Result<Vec<Scheduled>> {
+        let explicit = self.steps.iter().any(|step| step.is_render());
+        let mut scheduled = Vec::new();
+        let mut stems = Vec::new();
+        if explicit {
+            for step in &self.steps {
+                match step {
+                    Step::Render { rows, cols, name } => {
+                        let (rows, cols) = resolve_size(*rows, *cols, self.geometry)?;
+                        let stem = name.clone().unwrap_or_else(|| default_stem.to_string());
+                        check_stem(&stem)?;
+                        stems.push(stem.clone());
+                        scheduled.push(Scheduled::Render { stem, rows, cols });
+                    }
+                    other => {
+                        if let Some(event) = other.to_event()? {
+                            scheduled.push(Scheduled::Event(Box::new(event)));
+                        }
+                    }
+                }
+            }
+        } else {
+            let Some(geometry) = self.geometry else {
+                bail!("script has no geometry; set geometry or add a render step");
+            };
+            for step in &self.steps {
+                if let Some(event) = step.to_event()? {
+                    scheduled.push(Scheduled::Event(Box::new(event)));
+                }
+            }
+            check_stem(default_stem)?;
+            stems.push(default_stem.to_string());
+            scheduled.push(Scheduled::Render {
+                stem: default_stem.to_string(),
+                rows: geometry.rows,
+                cols: geometry.cols,
+            });
+        }
+        check_unique(&stems)?;
+        Ok(scheduled)
+    }
+}
+
+fn resolve_size(
+    rows: Option<u32>,
+    cols: Option<u32>,
+    geometry: Option<Geometry>,
+) -> Result<(u32, u32)> {
+    let rows = rows.or_else(|| geometry.map(|geometry| geometry.rows));
+    let cols = cols.or_else(|| geometry.map(|geometry| geometry.cols));
+    match (rows, cols) {
+        (Some(rows), Some(cols)) => Ok((rows, cols)),
+        (None, None) => {
+            bail!("render is missing rows and cols; set them on the step or set geometry")
+        }
+        (None, Some(_)) => {
+            bail!("render is missing rows; set rows on the step or set geometry")
+        }
+        (Some(_), None) => {
+            bail!("render is missing cols; set cols on the step or set geometry")
+        }
+    }
+}
+
+fn check_stem(stem: &str) -> Result<()> {
+    if stem.is_empty() || stem == "." || stem == ".." || stem.contains('/') || stem.contains('\\') {
+        bail!("output stem '{stem}' is not a single file name");
+    }
+    Ok(())
+}
+
+fn check_unique(stems: &[String]) -> Result<()> {
+    let mut seen = BTreeSet::new();
+    for stem in stems {
+        if !seen.insert(stem.as_str()) {
+            bail!("duplicate output stem '{stem}'");
+        }
+    }
+    Ok(())
 }
 
 impl Step {
+    fn is_render(&self) -> bool {
+        matches!(self, Step::Render { .. })
+    }
+
     pub fn to_event(&self) -> Result<Option<Event>> {
         match self {
+            Step::Render { .. } => Ok(None),
             Step::GrantPermissions => Ok(Some(Event::PermissionRequestResult(
                 PermissionStatus::Granted,
             ))),
@@ -303,5 +415,169 @@ fn tab_info(position: usize, t: &TabSpec) -> TabInfo {
         tab_id: position,
         has_bell_notification: false,
         is_flashing_bell: false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(yaml: &str) -> ShotScript {
+        serde_yaml::from_str(yaml).expect("yaml")
+    }
+
+    fn renders(scheduled: &[Scheduled]) -> Vec<(&str, u32, u32)> {
+        scheduled
+            .iter()
+            .filter_map(|step| match step {
+                Scheduled::Render { stem, rows, cols } => Some((stem.as_str(), *rows, *cols)),
+                Scheduled::Event(_) => None,
+            })
+            .collect()
+    }
+
+    fn kinds(scheduled: &[Scheduled]) -> Vec<&'static str> {
+        scheduled
+            .iter()
+            .map(|step| match step {
+                Scheduled::Event(_) => "event",
+                Scheduled::Render { .. } => "render",
+            })
+            .collect()
+    }
+
+    #[test]
+    fn no_render_step_renders_once_at_the_end() {
+        let shot = parse(
+            "
+            name: demo
+            plugin: plugin.wasm
+            geometry:
+              rows: 1
+              cols: 80
+            steps:
+              - action: grant_permissions
+            ",
+        );
+        let scheduled = shot.schedule("demo").unwrap();
+        assert_eq!(kinds(&scheduled), ["event", "render"]);
+        assert_eq!(renders(&scheduled), vec![("demo", 1, 80)]);
+    }
+
+    #[test]
+    fn render_steps_replace_the_trailing_render() {
+        let shot = parse(
+            "
+            plugin: plugin.wasm
+            geometry:
+              rows: 2
+              cols: 80
+            steps:
+              - action: grant_permissions
+              - action: render
+                name: narrow
+                cols: 40
+              - action: grant_permissions
+              - action: render
+                name: wide
+                cols: 120
+            ",
+        );
+        let scheduled = shot.schedule("script").unwrap();
+        assert_eq!(kinds(&scheduled), ["event", "render", "event", "render"]);
+        assert_eq!(
+            renders(&scheduled),
+            vec![("narrow", 2, 40), ("wide", 2, 120)]
+        );
+    }
+
+    #[test]
+    fn render_step_can_supply_the_whole_size() {
+        let shot = parse(
+            "
+            plugin: plugin.wasm
+            steps:
+              - action: render
+                name: only
+                rows: 3
+                cols: 20
+            ",
+        );
+        let scheduled = shot.schedule("script").unwrap();
+        assert_eq!(renders(&scheduled), vec![("only", 3, 20)]);
+    }
+
+    #[test]
+    fn unnamed_render_uses_the_script_stem() {
+        let shot = parse(
+            "
+            plugin: plugin.wasm
+            geometry:
+              rows: 1
+              cols: 80
+            steps:
+              - action: render
+            ",
+        );
+        let scheduled = shot.schedule("from-file").unwrap();
+        assert_eq!(renders(&scheduled), vec![("from-file", 1, 80)]);
+    }
+
+    #[test]
+    fn duplicate_stems_fail() {
+        let shot = parse(
+            "
+            plugin: plugin.wasm
+            geometry:
+              rows: 1
+              cols: 80
+            steps:
+              - action: render
+              - action: render
+                cols: 100
+            ",
+        );
+        let err = shot.schedule("demo").unwrap_err().to_string();
+        assert!(err.contains("duplicate output stem 'demo'"), "{err}");
+    }
+
+    #[test]
+    fn a_stem_is_one_file_name() {
+        let shot = parse(
+            "
+            plugin: plugin.wasm
+            steps:
+              - action: render
+                name: shots/a
+                rows: 1
+                cols: 1
+            ",
+        );
+        let err = shot.schedule("demo").unwrap_err().to_string();
+        assert!(err.contains("not a single file name"), "{err}");
+    }
+
+    #[test]
+    fn missing_size_fails() {
+        let shot = parse(
+            "
+            plugin: plugin.wasm
+            steps:
+              - action: render
+                name: only
+                rows: 1
+            ",
+        );
+        let err = shot.schedule("demo").unwrap_err().to_string();
+        assert!(err.contains("missing cols"), "{err}");
+
+        let shot = parse(
+            "
+            plugin: plugin.wasm
+            steps: []
+            ",
+        );
+        let err = shot.schedule("demo").unwrap_err().to_string();
+        assert!(err.contains("no geometry"), "{err}");
     }
 }

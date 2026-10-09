@@ -20,7 +20,7 @@ use zellij_utils::plugin_api::plugin_command::{
 };
 use zellij_utils::plugin_api::plugin_ids::{ProtobufPluginIds, ProtobufZellijVersion};
 
-use crate::script::{HostIds, Step};
+use crate::script::HostIds;
 
 pub struct PluginHost {
     store: Store<Env>,
@@ -106,13 +106,8 @@ impl PluginHost {
         Ok(Self { store, instance })
     }
 
-    pub fn drive(&mut self, steps: &[Step]) -> Result<Vec<String>> {
-        for step in steps {
-            if let Some(event) = step.to_event()? {
-                self.push_event(&event)?;
-            }
-        }
-        Ok(self.store.data().effects.clone())
+    pub fn effects(&self) -> &[String] {
+        &self.store.data().effects
     }
 
     pub fn push_event(&mut self, event: &Event) -> Result<bool> {
