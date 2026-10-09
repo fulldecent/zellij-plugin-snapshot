@@ -8,7 +8,7 @@ use clap::Parser;
 use std::path::{Path, PathBuf};
 
 use crate::host::PluginHost;
-use crate::script::ShotScript;
+use crate::script::{Scheduled, ShotScript};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -16,7 +16,7 @@ use crate::script::ShotScript;
     about = "Zellij Plugin Snapshot: load a plugin wasm, drive it, capture exact render output"
 )]
 struct Args {
-    /// YAML drive script (plugin path, config, events, geometry).
+    /// YAML drive script (plugin path, config, events, renders).
     /// Relative paths are from the current working directory.
     script: PathBuf,
     /// Directory for `{name}.ansi.txt` and `{name}.svg`
@@ -34,29 +34,37 @@ fn main() -> Result<()> {
         anyhow::bail!("plugin wasm missing: {}", shot.plugin.display());
     }
 
-    let mut host = PluginHost::load(&shot.plugin, &shot.config, &shot.ids, shot.world.snapshot())?;
-    let log = host.drive(&shot.steps)?;
-    let ansi = host.render(shot.geometry.rows, shot.geometry.cols)?;
-    let styling = shot.styling();
-    let cols = shot.geometry.cols;
-    let rows = shot.geometry.rows;
-
     let stem = shot
         .name
+        .clone()
         .unwrap_or_else(|| script_path.file_stem().unwrap().to_string_lossy().into());
+    let schedule = shot.schedule(&stem)?;
+
+    let mut host = PluginHost::load(&shot.plugin, &shot.config, &shot.ids, shot.world.snapshot())?;
+    let styling = shot.styling();
     std::fs::create_dir_all(&args.out)?;
-    let ansi_path = args.out.join(format!("{stem}.ansi.txt"));
-    let svg_path = args.out.join(format!("{stem}.svg"));
-    std::fs::write(&ansi_path, &ansi)?;
-    let svg = raster::ansi_svg(&ansi, cols, rows, &styling);
-    std::fs::write(&svg_path, svg)?;
+    for step in schedule {
+        match step {
+            Scheduled::Event(event) => {
+                host.push_event(&event)?;
+            }
+            Scheduled::Render { stem, rows, cols } => {
+                let ansi = host.render(rows, cols)?;
+                let ansi_path = args.out.join(format!("{stem}.ansi.txt"));
+                let svg_path = args.out.join(format!("{stem}.svg"));
+                std::fs::write(&ansi_path, &ansi)?;
+                let svg = raster::ansi_svg(&ansi, cols, rows, &styling);
+                std::fs::write(&svg_path, svg)?;
+                println!("wrote {}", ansi_path.display());
+                println!("wrote {}", svg_path.display());
+            }
+        }
+    }
 
     println!("plugin commands during run:");
-    for line in &log {
+    for line in host.effects() {
         println!("  {line}");
     }
-    println!("wrote {}", ansi_path.display());
-    println!("wrote {}", svg_path.display());
     Ok(())
 }
 
