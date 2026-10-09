@@ -105,7 +105,7 @@ A published version can also be installed from crates.io:
 
 ## Usage
 
-A YAML drive script names a plugin wasm, a pane size, and the events to send before `render`. Paths in `plugin:` that are not absolute are **relative to this YAML file**.
+A YAML drive script names a plugin wasm, the events to send, and when to call `render`. Paths in `plugin:` that are not absolute are **relative to this YAML file**.
 
 ```text
 zellij-plugin-snapshot script.yaml [--out DIR]
@@ -116,7 +116,7 @@ zellij-plugin-snapshot script.yaml [--out DIR]
 | `script.yaml` | Drive script; relative to the current working directory        |
 | `--out DIR`   | Directory for `{name}.ansi.txt` and `{name}.svg` (default `.`) |
 
-`name` is the output stem (`normal.ansi.txt`, `normal.svg`). If omitted, the YAML file stem is used.
+`name` is the output stem (`normal.ansi.txt`, `normal.svg`). If omitted, the YAML file stem is used. A `render` step may set its own stem.
 
 ### Try the stock Zellij plugins
 
@@ -194,10 +194,10 @@ world:                                # session list for GetSessionList
   current: demo
   sessions: [demo]
   resurrectable: []
-geometry:
-  rows: 1                             # passed to render(rows, cols)
+geometry:                             # default render size
+  rows: 1
   cols: 80
-steps:                                # events, in order, then render
+steps:
   - action: grant_permissions
   - action: initial_keybinds
   - action: mode_update
@@ -216,7 +216,17 @@ steps:                                # events, in order, then render
     resurrectable: []
   - action: event_json
     json: '{"ModeUpdate": ...}'       # raw zellij_utils::data::Event
+  - action: render                    # render(rows, cols); not an event
+    rows: 1                           # optional; falls back to geometry
+    cols: 40                          # optional; falls back to geometry
+    name: narrow                      # optional when this stem is unique
 ```
+
+A script with no `render` step sends the events, then calls `render` once with `geometry`. The output stem is `name`, or the YAML file stem when `name` is omitted.
+
+A `render` step calls `render` at that point and writes `{name}.ansi.txt` and `{name}.svg` under `--out`. `rows` and `cols` fall back to `geometry` one field at a time. `name` falls back to the same stem. The host does not render again after the last step. Two renders that would write the same stem fail. A stem is one file name, so `shots/a` and `C:shot` are rejected. `geometry` may be omitted when every `render` step sets both `rows` and `cols`.
+
+A `render` step does not send `TabUpdate`. `viewport_rows`, `viewport_columns`, `display_area_rows`, and `display_area_columns` stay at whatever the last `tab_update` set (40×80 and 42×80 when the script uses the fields above).
 
 `mode_update` always applies a default-session theme (`Styling::from(default_palette())`) and `arrow_fonts: false` (Nerd Font separators), matching a typical local Zellij 0.45 session.
 
@@ -238,7 +248,7 @@ If `render` is empty or the wasm traps, add the query the plugin makes (`GetSess
 
 Theme for DCS expansion is the same default palette as `mode_update`. Unstyled cells sit on a black pane.
 
-This tool captures **one plugin** per run (`render(rows, cols)` for that wasm). It does not load a Zellij layout or compose tab bar, panes, and status bar into one image.
+This tool captures **one plugin** per run. Each `render` writes that plugin's stdout at that size. It does not load a Zellij layout or compose tab bar, panes, and status bar into one image.
 
 ## Development
 
