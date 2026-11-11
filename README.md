@@ -1,7 +1,7 @@
 # Zellij Plugin Snapshot
 
-[![Build and test](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/build-test.yml/badge.svg?branch=main)](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/build-test.yml)
-[![Lint](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/lint.yml)
+[![Build and test](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/build-test.yml/badge.svg)](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/build-test.yml)
+[![Lint](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/lint.yml/badge.svg)](https://github.com/fulldecent/zellij-plugin-snapshot/actions/workflows/lint.yml)
 
 A command-line host that loads **your** Zellij plugin `.wasm`, feeds it the same events a real session would, and outputs two files:
 
@@ -310,7 +310,8 @@ Out-of-scope is handling custom color theming that the Zellij host would normall
 
 1. We use title case only for proper nouns, including the name of our project.
 1. We recommend to use your package manager to install rustup because the rust website prefers the unsafe `curl|sh` method ([issue](https://github.com/rust-lang/rust/issues/163468)).
-1. This project is built based on [best practices documented in rust-template](https://github.com/fulldecent/rust-template/), release 1.1.0.
+1. This project is built based on [best practices documented in rust-template](https://github.com/fulldecent/rust-template/), release v1.1.1.
+1. This project is built based on [best practices documented in project-template](https://github.com/fulldecent/project-template), release v1.4.1.
 1. The Rust ignore rules in [.gitignore](.gitignore) come from [GitHub's Rust gitignore](https://github.com/github/gitignore/blob/main/Rust.gitignore).
 1. This crate is a command-line host. Plugin authors run the binary against their wasm. They do not add it to `[dependencies]` or to `[dev-dependencies]` on stable Cargo (that field links a library, and this package is not one).
 1. Publishing from GitHub Actions follows [crates.io Trusted Publishing](https://crates.io/docs/trusted-publishing). The crate's trusted publisher names the workflow file `release.yml` and leaves the environment empty. GitHub's OIDC token is exchanged for a token that lasts about 30 minutes. No crates.io token is stored in this repository.
