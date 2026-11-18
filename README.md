@@ -76,8 +76,10 @@ See the resulting images in `examples/out`.
 From your plugin crate (the one with `crate-type = ["cdylib"]` and `zellij-tile = "0.45.1"`):
 
 ```sh
-export PATH="$(dirname "$(rustup which cargo)"):$PATH"
-export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
 rustup target add wasm32-wasip1
 cargo build --target wasm32-wasip1 --release
 ```
@@ -111,8 +113,10 @@ zellij-plugin-snapshot shots/normal.yaml --out shots
 A test or CI job is: build wasm, run the host, `diff` the **ANSI** file.
 
 ```sh
-export PATH="$(dirname "$(rustup which cargo)"):$PATH"
-export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
 rustup target add wasm32-wasip1
 cargo build --target wasm32-wasip1 --release
 zellij-plugin-snapshot shots/normal.yaml --out /tmp/shots
@@ -238,8 +242,10 @@ Clone the project and work from that directory. On Linux and macOS:
 ```sh
 git clone https://github.com/fulldecent/zellij-plugin-snapshot.git
 cd zellij-plugin-snapshot
-export PATH="$(dirname "$(rustup which cargo)"):$PATH"
-export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
 cargo build --locked
 cargo run --locked -- examples/scripts/status-bar.yaml --out examples/out
 cargo install --path . --locked
@@ -248,7 +254,12 @@ cargo install --path . --locked
 In PowerShell:
 
 ```powershell
-$bin = Split-Path (rustup which cargo)
+git clone https://github.com/fulldecent/zellij-plugin-snapshot.git
+Set-Location zellij-plugin-snapshot
+rustup show
+$cargo = rustup which cargo
+if (-not $cargo) { exit 1 }
+$bin = Split-Path $cargo
 $env:PATH = "$bin;$env:PATH"
 cargo build --locked
 cargo install --path . --locked
@@ -263,8 +274,10 @@ Commit [Cargo.lock](Cargo.lock) so application dependencies remain reproducible.
 All project updates that we release must conform to our test suite. GitHub Actions runs [checks](.github/workflows) on pushes to `main` and pull requests. You can also run them locally before sending proposed changes:
 
 ```sh
-export PATH="$(dirname "$(rustup which cargo)"):$PATH"
-export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
 cargo test --locked
 cargo fmt --all -- --check
 cargo clippy --all-targets --locked -- -D warnings
