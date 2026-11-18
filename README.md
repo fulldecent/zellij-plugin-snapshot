@@ -53,19 +53,20 @@ zellij-plugin-snapshot script.yaml [--out DIR]
 
 ### Try the stock Zellij plugins
 
-Download official plugin wasm files, then run the example scripts:
+These scripts live in this repository. Each `plugin:` path is relative to the script. Download the scripts and the official plugin wasm files, then run the installed command:
 
 ```sh
-base="https://raw.githubusercontent.com/zellij-org/zellij/v0.45.1/zellij-utils/assets/plugins"
-curl -fsSL -o "examples/plugins/tab-bar.wasm" "$base/tab-bar.wasm"
-curl -fsSL -o "examples/plugins/status-bar.wasm" "$base/status-bar.wasm"
-curl -fsSL -o "examples/plugins/session-manager.wasm" "$base/session-manager.wasm"
+mkdir -p examples/plugins examples/scripts examples/out
+plugins="https://raw.githubusercontent.com/zellij-org/zellij/v0.45.1/zellij-utils/assets/plugins"
+scripts="https://raw.githubusercontent.com/fulldecent/zellij-plugin-snapshot/v0.2.3/examples/scripts"
+for name in tab-bar status-bar session-manager; do
+  curl -fsSL -o "examples/plugins/${name}.wasm" "$plugins/${name}.wasm"
+  curl -fsSL -o "examples/scripts/${name}.yaml" "$scripts/${name}.yaml"
+done
 
-export PATH="$(dirname "$(rustup which cargo)"):$PATH"
-export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
-cargo run --locked --quiet -- "examples/scripts/tab-bar.yaml" --out examples/out
-cargo run --locked --quiet -- "examples/scripts/status-bar.yaml" --out examples/out
-cargo run --locked --quiet -- "examples/scripts/session-manager.yaml" --out examples/out
+zellij-plugin-snapshot examples/scripts/tab-bar.yaml --out examples/out
+zellij-plugin-snapshot examples/scripts/status-bar.yaml --out examples/out
+zellij-plugin-snapshot examples/scripts/session-manager.yaml --out examples/out
 ```
 
 See the resulting images in `examples/out`.
@@ -77,6 +78,7 @@ From your plugin crate (the one with `crate-type = ["cdylib"]` and `zellij-tile 
 ```sh
 export PATH="$(dirname "$(rustup which cargo)"):$PATH"
 export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+rustup target add wasm32-wasip1
 cargo build --target wasm32-wasip1 --release
 ```
 
@@ -111,6 +113,7 @@ A test or CI job is: build wasm, run the host, `diff` the **ANSI** file.
 ```sh
 export PATH="$(dirname "$(rustup which cargo)"):$PATH"
 export DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" # macOS only; omit on Linux
+rustup target add wasm32-wasip1
 cargo build --target wasm32-wasip1 --release
 zellij-plugin-snapshot shots/normal.yaml --out /tmp/shots
 diff -u shots/normal.ansi.txt /tmp/shots/normal.ansi.txt
