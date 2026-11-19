@@ -48,7 +48,8 @@ jobs:
       - name: Open the release pull request
         uses: googleapis/release-please-action@v5
         with:
-          release-type: simple
+          release-type: rust
+          include-component-in-tag: false
           skip-github-release: true
 
       - name: Find a merged release pull request
@@ -151,12 +152,17 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           # One call, files included. A later upload fails once release immutability is on.
-          gh release create "$TAG" dist/* \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "$TAG" \
-            --generate-notes \
-            --latest
+          # A rerun keeps the existing release and continues on to crates.io.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists"
+          else
+            gh release create "$TAG" dist/* \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "$TAG" \
+              --generate-notes \
+              --latest
+          fi
 
       - name: Check out this commit
         uses: actions/checkout@v7
