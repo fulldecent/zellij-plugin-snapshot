@@ -277,9 +277,11 @@ fn check_stem(stem: &str) -> Result<()> {
 }
 
 fn check_unique(stems: &[String]) -> Result<()> {
+    // macOS and Windows treat `narrow` and `NARROW` as one file, so the second
+    // write would replace the first render.
     let mut seen = BTreeSet::new();
     for stem in stems {
-        if !seen.insert(stem.as_str()) {
+        if !seen.insert(stem.to_lowercase()) {
             bail!("duplicate output stem '{stem}'");
         }
     }
@@ -547,6 +549,26 @@ mod tests {
         );
         let err = shot.schedule("demo").unwrap_err().to_string();
         assert!(err.contains("duplicate output stem 'demo'"), "{err}");
+    }
+
+    #[test]
+    fn case_only_stems_fail() {
+        let shot = parse(
+            "
+            plugin: plugin.wasm
+            steps:
+              - action: render
+                name: narrow
+                rows: 1
+                cols: 1
+              - action: render
+                name: NARROW
+                rows: 1
+                cols: 1
+            ",
+        );
+        let err = shot.schedule("demo").unwrap_err().to_string();
+        assert!(err.contains("duplicate output stem 'NARROW'"), "{err}");
     }
 
     #[test]
