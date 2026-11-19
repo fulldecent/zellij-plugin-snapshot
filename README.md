@@ -16,92 +16,25 @@ Here is the result of driving the [official Zellij wasm plugins for the status b
 
 ## Installation
 
-You will need rustup, Git and your platform's native build tools.
-
-> [!WARNING]
-> rustup is the Rust toolchain manager, which installs rustc and friends at versions we specify in [rust-toolchain.toml](rust-toolchain.toml). We recommend to install rustup using your package manager as this is safer than the advice on the rustup website ([ref](#references)).
-
-If you do not use rustup and instead modify the commands below to use rustc directly, this may use your package manager's (possibly ancient) version. That build may fail and will be unsupported by this project.
+Select the latest release and install the command:
 
 ```sh
-"$(rustup which rustc)" --version
-"$(rustup which cargo)" --version
+name="zellij-plugin-snapshot"
+base="https://github.com/fulldecent/zellij-plugin-snapshot/releases/latest/download"
+curl -fL -o "$name" "$base/$name"
+curl -fL -o release.sigstore.jsonl "$base/release.sigstore.jsonl"
+chmod +x "$name"
 ```
 
-Open a terminal (PowerShell on Windows) and use the instructions for your operating system.
-
-### Linux
-
-On Ubuntu 22.04+ or Debian 12+:
+If you have the `gh` command, verify the file build attestation:
 
 ```sh
-sudo apt update
-sudo apt install git build-essential rustup
+gh attestation verify "$name" \
+  -R fulldecent/zellij-plugin-snapshot \
+  --bundle release.sigstore.jsonl
 ```
 
-On Fedora:
-
-```sh
-sudo dnf install git gcc rustup
-```
-
-If your distribution has no `rustup` package, [other rustup installation methods](https://rust-lang.github.io/rustup/installation/other.html) are available, but beware as that page does also recommend some dangerous methods ([ref](#references)).
-
-### macOS
-
-Install Apple's Command Line Tools if they are not already installed:
-
-```sh
-xcode-select --install
-```
-
-Complete the installation dialog; these tools supply the linker and SDK. With Homebrew installed, install Git and rustup:
-
-```sh
-brew install git rustup
-```
-
-Homebrew's `rust` formula is a standalone compiler. It does not honor `rust-toolchain.toml`. Use `rustup` instead.
-
-### Windows
-
-Use winget to install Git, the native build tools and rustup:
-
-```powershell
-winget install --exact --id Git.Git
-winget install --exact --id Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-winget install --exact --id Rustlang.Rustup
-```
-
-Allow administrator prompts and wait for installation to finish. The C++ workload supplies the MSVC linker and Windows SDK. Open a new PowerShell window so rustup is on `PATH`.
-
-### Build and install
-
-Clone the project and install the command. From this directory, rustup installs the toolchain in [rust-toolchain.toml](rust-toolchain.toml) on first use. CI uses the same file.
-
-```sh
-git clone https://github.com/fulldecent/zellij-plugin-snapshot.git
-cd zellij-plugin-snapshot
-"$(rustup which rustc)" --version
-"$(rustup which cargo)" --version
-"$(rustup which cargo)" install --path . --locked
-```
-
-In PowerShell:
-
-```powershell
-& (rustup which rustc) --version
-& (rustup which cargo) --version
-& (rustup which cargo) install --path . --locked
-```
-
-Cargo installs `zellij-plugin-snapshot` in `$HOME/.cargo/bin` (`%USERPROFILE%\.cargo\bin` on Windows). Add that directory to your PATH if it is not already there.
-
-A published version can also be installed from crates.io:
-
-```sh
-"$(rustup which cargo)" install zellij-plugin-snapshot --locked
-```
+The published binary is for Linux. Put `zellij-plugin-snapshot` on your `PATH`.
 
 ## Usage
 
@@ -120,17 +53,20 @@ zellij-plugin-snapshot script.yaml [--out DIR]
 
 ### Try the stock Zellij plugins
 
-Download official plugin wasm files, then run the example scripts:
+These scripts live in this repository. Each `plugin:` path is relative to the script. Download the scripts and the official plugin wasm files, then run the installed command:
 
 ```sh
-base="https://raw.githubusercontent.com/zellij-org/zellij/v0.45.1/zellij-utils/assets/plugins"
-curl -fsSL -o "examples/plugins/tab-bar.wasm" "$base/tab-bar.wasm"
-curl -fsSL -o "examples/plugins/status-bar.wasm" "$base/status-bar.wasm"
-curl -fsSL -o "examples/plugins/session-manager.wasm" "$base/session-manager.wasm"
+mkdir -p examples/plugins examples/scripts examples/out
+plugins="https://raw.githubusercontent.com/zellij-org/zellij/v0.45.1/zellij-utils/assets/plugins"
+scripts="https://raw.githubusercontent.com/fulldecent/zellij-plugin-snapshot/v0.2.3/examples/scripts"
+for name in tab-bar status-bar session-manager; do
+  curl -fsSL -o "examples/plugins/${name}.wasm" "$plugins/${name}.wasm"
+  curl -fsSL -o "examples/scripts/${name}.yaml" "$scripts/${name}.yaml"
+done
 
-"$(rustup which cargo)" run --locked --quiet -- "examples/scripts/tab-bar.yaml" --out examples/out
-"$(rustup which cargo)" run --locked --quiet -- "examples/scripts/status-bar.yaml" --out examples/out
-"$(rustup which cargo)" run --locked --quiet -- "examples/scripts/session-manager.yaml" --out examples/out
+zellij-plugin-snapshot examples/scripts/tab-bar.yaml --out examples/out
+zellij-plugin-snapshot examples/scripts/status-bar.yaml --out examples/out
+zellij-plugin-snapshot examples/scripts/session-manager.yaml --out examples/out
 ```
 
 See the resulting images in `examples/out`.
@@ -140,8 +76,12 @@ See the resulting images in `examples/out`.
 From your plugin crate (the one with `crate-type = ["cdylib"]` and `zellij-tile = "0.45.1"`):
 
 ```sh
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
 rustup target add wasm32-wasip1
-"$(rustup which cargo)" build --target wasm32-wasip1 --release
+cargo build --target wasm32-wasip1 --release
 ```
 
 The artifact is typically `target/wasm32-wasip1/release/<your_crate>.wasm`.
@@ -173,7 +113,12 @@ zellij-plugin-snapshot shots/normal.yaml --out shots
 A test or CI job is: build wasm, run the host, `diff` the **ANSI** file.
 
 ```sh
-"$(rustup which cargo)" build --target wasm32-wasip1 --release
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
+rustup target add wasm32-wasip1
+cargo build --target wasm32-wasip1 --release
 zellij-plugin-snapshot shots/normal.yaml --out /tmp/shots
 diff -u shots/normal.ansi.txt /tmp/shots/normal.ansi.txt
 ```
@@ -244,11 +189,83 @@ This tool captures **one plugin** per run (`render(rows, cols)` for that wasm). 
 
 Thank you for taking an interest in improving Zellij Plugin Snapshot and the plugin READMEs of people using it!
 
-Follow the installation instructions above to get rustup and the native build tools. Work from the project directory. You can run the host without installing it:
+You will need Git, your platform's native build tools and the Rust tooling described in [rust-toolchain.toml](rust-toolchain.toml). We recommend rustup to manage your rust tooling, but install it using your system package manager rather than the dangerous methods on the rustup website ([ref](#references)).
+
+### Linux
+
+On Ubuntu 22.04+ or Debian 12+:
 
 ```sh
-"$(rustup which cargo)" run --locked -- examples/scripts/status-bar.yaml --out examples/out
+sudo apt update
+sudo apt install git build-essential rustup
 ```
+
+On Fedora:
+
+```sh
+sudo dnf install git gcc rustup
+```
+
+### macOS
+
+Install Apple's Command Line Tools (linker and SDK) if they are not already installed:
+
+```sh
+xcode-select --install
+```
+
+With Homebrew installed, install Git and rustup:
+
+```sh
+brew install git rustup
+```
+
+### Windows
+
+Use winget to install Git, the native build tools (linker and SDK) and rustup:
+
+```powershell
+winget install --exact --id Git.Git
+winget install --exact --id Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+winget install --exact --id Rustlang.Rustup
+```
+
+Then open a new PowerShell window so rustup is on `PATH`.
+
+### Build
+
+Clone the project and work from that directory. On Linux and macOS:
+
+> [!NOTE]
+> If you do not require cross compilation, remove the `DYLD_LIBRARY_PATH="..."` part of all commands in this README.
+
+```sh
+git clone https://github.com/fulldecent/zellij-plugin-snapshot.git
+cd zellij-plugin-snapshot
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
+cargo build --locked
+cargo run --locked -- examples/scripts/status-bar.yaml --out examples/out
+cargo install --path . --locked
+```
+
+In PowerShell:
+
+```powershell
+git clone https://github.com/fulldecent/zellij-plugin-snapshot.git
+Set-Location zellij-plugin-snapshot
+rustup show
+$cargo = rustup which cargo
+if (-not $cargo) { exit 1 }
+$bin = Split-Path $cargo
+$env:PATH = "$bin;$env:PATH"
+cargo build --locked
+cargo install --path . --locked
+```
+
+Cargo installs `zellij-plugin-snapshot` in `$HOME/.cargo/bin` (`%USERPROFILE%\.cargo\bin` on Windows). Add that directory to your PATH if it is not already there.
 
 Commit [Cargo.lock](Cargo.lock) so application dependencies remain reproducible.
 
@@ -257,13 +274,17 @@ Commit [Cargo.lock](Cargo.lock) so application dependencies remain reproducible.
 All project updates that we release must conform to our test suite. GitHub Actions runs [checks](.github/workflows) on pushes to `main` and pull requests. You can also run them locally before sending proposed changes:
 
 ```sh
-"$(rustup which cargo)" test --locked
-"$(rustup which cargo)" fmt --all -- --check
-"$(rustup which cargo)" clippy --all-targets --locked -- -D warnings
-"$(rustup which cargo)" build --release --locked
+rustup show
+cargo_bin=$(rustup which cargo)
+export PATH="$(dirname "$cargo_bin"):$PATH"
+export DYLD_LIBRARY_PATH="$(cd "$(dirname "$cargo_bin")/../lib" && pwd)" # macOS only; omit on Linux
+cargo test --locked
+cargo fmt --all -- --check
+cargo clippy --all-targets --locked -- -D warnings
+cargo build --release --locked
 ```
 
-Use `"$(rustup which cargo)" fmt --all` to apply Rust formatting.
+Use `PATH="$(dirname "$(rustup which cargo)"):$PATH" DYLD_LIBRARY_PATH="$(cd "$(dirname "$(rustup which cargo)")/../lib" && pwd)" cargo fmt --all` to apply Rust formatting.
 
 With an actively maintained version of Node.js installed, correct other formatting issues before sending proposed changes:
 
@@ -309,6 +330,7 @@ Out-of-scope is handling custom color theming that the Zellij host would normall
 ## References
 
 1. We use title case only for proper nouns, including the name of our project.
+1. We use a workaround so that rustup works without replacing your system Rust programs ([issue](https://github.com/rust-lang/rustup/issues/5025#issuecomment-6869331794)).
 1. We recommend to use your package manager to install rustup because the rust website prefers the unsafe `curl|sh` method ([issue](https://github.com/rust-lang/rust/issues/163468)).
 1. This project is built based on [best practices documented in rust-template](https://github.com/fulldecent/rust-template/), release v1.1.1.
 1. This project is built based on [best practices documented in project-template](https://github.com/fulldecent/project-template), release v1.4.1.
